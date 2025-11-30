@@ -224,18 +224,31 @@ save_hist(lcoe_values, "LCOE ($/MWh)", "Frequency", "lcoe_distribution", "skyblu
 save_hist(npv_values / 1e9, "NPV (Billion USD)", "Frequency", "npv_distribution", "lightgreen")
 save_hist(np.array([i * 100 for i in irr_values if not np.isnan(i)]), "IRR (%)", "Frequency", "irr_distribution", "salmon")
 
-# Cash flow plot
+# Compute cumulative cash flow to find breakeven
+cumulative_cash = np.cumsum(cash_flows_det)
+breakeven_index = np.where(cumulative_cash >= 0)[0][0]  # first year cumulative cash >= 0
+breakeven_year = breakeven_index + 1  # adjust for 1-based year
+
+# Plot
 years_det = list(range(1, len(cash_flows_det) + 1))
 plt.figure(figsize=(10, 6))
-plt.bar(years_det, cash_flows_det, color='orange', edgecolor='black')
+bars = plt.bar(years_det, cash_flows_det, color='orange', edgecolor='black')
 plt.axhline(0, color='black', linewidth=0.8)
 plt.xlabel("Year")
 plt.ylabel("Net Cash Flow (USD)")
 plt.grid(True, linestyle='--', alpha=0.6)
+
+# Highlight breakeven bar
+bars[breakeven_index].set_color('green')
+plt.text(breakeven_year, cash_flows_det[breakeven_index]*1.05, f'Breakeven Year\n{breakeven_year}',
+         ha='center', va='bottom', color='green', fontweight='bold')
+
 plt.tight_layout()
-plt.savefig(os.path.join(output_folder, "cashflow_deterministic.png"), dpi=600)
-plt.savefig(os.path.join(output_folder, "cashflow_deterministic.pdf"))
+plt.savefig(os.path.join(output_folder, "cashflow_deterministic_breakeven.png"), dpi=600)
+plt.savefig(os.path.join(output_folder, "cashflow_deterministic_breakeven.pdf"))
 plt.show()
+
+print(f"Financial breakeven occurs in year {breakeven_year}")
 
 # Lifecycle cost breakdown plot
 components = ['CapEx', 'Fuel', 'Fixed O&M', 'Variable O&M', 'Back-end', 'Decommissioning']
@@ -251,3 +264,5 @@ plt.grid(axis='y', linestyle='--', alpha=0.7)
 plt.tight_layout()
 plt.savefig(os.path.join(output_folder, "lifecycle_cost_breakdown.png"), dpi=600)
 plt.savefig(os.path.join(output_folder, "lifecycle_cost_breakdown.pdf"))
+
+
